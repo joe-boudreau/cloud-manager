@@ -7,10 +7,9 @@ from datetime import datetime, timedelta
 from operator import itemgetter
 
 
-@webapp.route('/ec2_examples',methods=['GET'])
+@webapp.route('/ec2_examples', methods=['GET'])
 # Display an HTML list of all ec2 instances
 def ec2_list():
-
     # create connection to ec2
     ec2 = boto3.resource('ec2')
 
@@ -19,11 +18,11 @@ def ec2_list():
 
     instances = ec2.instances.filter().all()
 
-    return render_template("ec2_examples/list.html",title="EC2 Instances",instances=instances)
+    return render_template("ec2_examples/list.html", title="EC2 Instances", instances=instances)
 
 
-@webapp.route('/ec2_examples/<id>',methods=['GET'])
-#Display details about a specific instance.
+@webapp.route('/ec2_examples/<id>', methods=['GET'])
+# Display details about a specific instance.
 def ec2_view(id):
     ec2 = boto3.resource('ec2')
 
@@ -38,15 +37,12 @@ def ec2_view(id):
     #    DiskReadOps, CPUCreditBalance, CPUCreditUsage, StatusCheckFailed,
     #    StatusCheckFailed_Instance, StatusCheckFailed_System
 
-
     namespace = 'AWS/EC2'
-    statistic = 'Average'                   # could be Sum,Maximum,Minimum,SampleCount,Average
-
-
+    statistic = 'Average'  # could be Sum,Maximum,Minimum,SampleCount,Average
 
     cpu = client.get_metric_statistics(
         Period=1 * 60,
-        StartTime=datetime.utcnow() - timedelta(seconds=60 * 60),
+        StartTime=datetime.utcnow() - timedelta(seconds=30 * 60),
         EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
         MetricName=metric_name,
         Namespace=namespace,  # Unit='Percent',
@@ -54,17 +50,10 @@ def ec2_view(id):
         Dimensions=[{'Name': 'InstanceId', 'Value': id}]
     )
 
-    cpu_stats = []
-
-
-    for point in cpu['Datapoints']:
-        hour = point['Timestamp'].hour
-        minute = point['Timestamp'].minute
-        time = hour + minute/60
-        cpu_stats.append([time,point['Average']])
+    cpu_stats = [[point['Timestamp'], point['Average']] for point in cpu['Datapoints']]
 
     cpu_stats = sorted(cpu_stats, key=itemgetter(0))
-
+    cpu_stats_fmt = [[stat[0].timestamp(), stat[1]] for stat in cpu_stats]
 
     statistic = 'Sum'  # could be Sum,Maximum,Minimum,SampleCount,Average
 
@@ -83,12 +72,10 @@ def ec2_view(id):
     for point in network_in['Datapoints']:
         hour = point['Timestamp'].hour
         minute = point['Timestamp'].minute
-        time = hour + minute/60
-        net_in_stats.append([time,point['Sum']])
+        time = hour + minute / 60
+        net_in_stats.append([time, point['Sum']])
 
     net_in_stats = sorted(net_in_stats, key=itemgetter(0))
-
-
 
     network_out = client.get_metric_statistics(
         Period=5 * 60,
@@ -100,29 +87,26 @@ def ec2_view(id):
         Dimensions=[{'Name': 'InstanceId', 'Value': id}]
     )
 
-
     net_out_stats = []
 
     for point in network_out['Datapoints']:
         hour = point['Timestamp'].hour
         minute = point['Timestamp'].minute
-        time = hour + minute/60
-        net_out_stats.append([time,point['Sum']])
+        time = hour + minute / 60
+        net_out_stats.append([time, point['Sum']])
 
         net_out_stats = sorted(net_out_stats, key=itemgetter(0))
 
-
-    return render_template("ec2_examples/view.html",title="Instance Info",
+    return render_template("ec2_examples/view.html", title="Instance Info",
                            instance=instance,
-                           cpu_stats=cpu_stats,
+                           cpu_stats=cpu_stats_fmt,
                            net_in_stats=net_in_stats,
                            net_out_stats=net_out_stats)
 
 
-@webapp.route('/ec2_examples/create',methods=['POST'])
+@webapp.route('/ec2_examples/create', methods=['POST'])
 # Start a new EC2 instance
 def ec2_create():
-
     ec2 = boto3.resource('ec2')
 
     ec2.create_instances(ImageId=config.ami_id, MinCount=1, MaxCount=1)
@@ -130,8 +114,7 @@ def ec2_create():
     return redirect(url_for('ec2_list'))
 
 
-
-@webapp.route('/ec2_examples/delete/<id>',methods=['POST'])
+@webapp.route('/ec2_examples/delete/<id>', methods=['POST'])
 # Terminate a EC2 instance
 def ec2_destroy(id):
     # create connection to ec2
