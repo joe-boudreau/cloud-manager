@@ -30,78 +30,40 @@ def ec2_view(id):
 
     client = boto3.client('cloudwatch')
 
-    metric_name = 'CPUUtilization'
-
-    ##    CPUUtilization, NetworkIn, NetworkOut, NetworkPacketsIn,
-    #    NetworkPacketsOut, DiskWriteBytes, DiskReadBytes, DiskWriteOps,
-    #    DiskReadOps, CPUCreditBalance, CPUCreditUsage, StatusCheckFailed,
-    #    StatusCheckFailed_Instance, StatusCheckFailed_System
-
-    namespace = 'AWS/EC2'
-    statistic = 'Average'  # could be Sum,Maximum,Minimum,SampleCount,Average
-
+    # CPU Utilization
     cpu = client.get_metric_statistics(
         Period=1 * 60,
         StartTime=datetime.utcnow() - timedelta(seconds=30 * 60),
         EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
-        MetricName=metric_name,
-        Namespace=namespace,  # Unit='Percent',
-        Statistics=[statistic],
+        MetricName='CPUUtilization',
+        Namespace='AWS/EC2',
+        Statistics=['Average'],  # could be Sum,Maximum,Minimum,SampleCount,Average
         Dimensions=[{'Name': 'InstanceId', 'Value': id}]
     )
 
     cpu_stats = [[point['Timestamp'], point['Average']] for point in cpu['Datapoints']]
-
     cpu_stats = sorted(cpu_stats, key=itemgetter(0))
-    cpu_stats_fmt = [[stat[0].timestamp(), stat[1]] for stat in cpu_stats]
+    cpu_stats_fmt = [[int(stat[0].timestamp())*1000, stat[1]] for stat in cpu_stats]
 
-    statistic = 'Sum'  # could be Sum,Maximum,Minimum,SampleCount,Average
-
-    network_in = client.get_metric_statistics(
+    # HTTP Requests per minute
+    http = client.get_metric_statistics(
         Period=1 * 60,
-        StartTime=datetime.utcnow() - timedelta(seconds=60 * 60),
+        StartTime=datetime.utcnow() - timedelta(seconds=30 * 60),
         EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
-        MetricName='NetworkIn',
-        Namespace=namespace,  # Unit='Percent',
-        Statistics=[statistic],
+        MetricName='http_request',
+        Namespace='custom',
+        Statistics=['SampleCount'],
         Dimensions=[{'Name': 'InstanceId', 'Value': id}]
     )
 
-    net_in_stats = []
-
-    for point in network_in['Datapoints']:
-        hour = point['Timestamp'].hour
-        minute = point['Timestamp'].minute
-        time = hour + minute / 60
-        net_in_stats.append([time, point['Sum']])
-
-    net_in_stats = sorted(net_in_stats, key=itemgetter(0))
-
-    network_out = client.get_metric_statistics(
-        Period=5 * 60,
-        StartTime=datetime.utcnow() - timedelta(seconds=60 * 60),
-        EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
-        MetricName='NetworkOut',
-        Namespace=namespace,  # Unit='Percent',
-        Statistics=[statistic],
-        Dimensions=[{'Name': 'InstanceId', 'Value': id}]
-    )
-
-    net_out_stats = []
-
-    for point in network_out['Datapoints']:
-        hour = point['Timestamp'].hour
-        minute = point['Timestamp'].minute
-        time = hour + minute / 60
-        net_out_stats.append([time, point['Sum']])
-
-        net_out_stats = sorted(net_out_stats, key=itemgetter(0))
+    http_stats = [[point['Timestamp'], point['SampleCount']] for point in http['Datapoints']]
+    http_stats = sorted(http_stats, key=itemgetter(0))
+    http_stats_fmt = [[int(stat[0].timestamp())*1000, stat[1]] for stat in http_stats]
 
     return render_template("ec2_examples/view.html", title="Instance Info",
                            instance=instance,
                            cpu_stats=cpu_stats_fmt,
-                           net_in_stats=net_in_stats,
-                           net_out_stats=net_out_stats)
+                           http_stats=http_stats_fmt)
 
 
 @webapp.route('/ec2_examples/create', methods=['POST'])
