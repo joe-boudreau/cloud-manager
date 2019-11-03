@@ -1,4 +1,7 @@
-from flask import render_template, redirect, url_for
+from threading import Thread
+from time import sleep
+
+from flask import render_template, redirect, url_for, Response, make_response, request, flash
 from src import webapp
 
 import boto3
@@ -13,10 +16,7 @@ def ec2_list():
     # create connection to ec2
     ec2 = boto3.resource('ec2')
 
-#    instances = ec2.instances.filter(
-#        Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
-
-    instances = ec2.instances.filter().all()
+    instances = ec2.instances.filter(Filters=[{'Name': 'tag-key', 'Values': ['a2']}]).all()
 
     return render_template("list.html", title="EZ App Manager Deluxe", instances=instances)
 
@@ -88,7 +88,7 @@ def ec2_destroy(id):
     # create connection to ec2
     ec2 = boto3.resource('ec2')
 
-    ec2.instances.filter(InstanceIds=[id]).terminate()
+    ec2.Instance(id).terminate()
 
     return redirect(url_for('ec2_list'))
 
@@ -96,9 +96,43 @@ def ec2_destroy(id):
 @webapp.route('/add-node', methods=['POST'])
 # Terminate a EC2 instance
 def add_node():
-    # TODO
+    ec2 = boto3.resource('ec2')
+    new_instance = ec2.create_instances(LaunchTemplate={'LaunchTemplateName': 'text_recog_launch_template'}, MaxCount=1, MinCount=1)[0]
+    new_id = new_instance.instance_id
 
+    Thread(target=register_once_running, args=[new_id]).start()
+
+    flash("New instance successfully provisioned. It will be added to the load balancer once start-up completes")
     return redirect(url_for('ec2_list'))
+
+
+def register_once_running(new_id):
+    session = boto3.session.Session()
+
+    ec2 = session.resource('ec2')
+
+    count = 0
+    node = ec2.Instance(new_id)
+    status = node.state['Name']
+    while status != 'running' and count < 100:
+        sleep(5)
+        node.reload()
+        status = node.state['Name']
+        count = count + 1
+
+    if count >= 100:
+        print("ERROR: New instance with id: " + new_id + "unable to be added to load balancer before timeout. Current "
+                                                         "node status: " + status)
+
+    elb = session.client('elbv2')
+
+    target_group = elb.describe_target_groups(Names=['app-target-group', ])
+    if not target_group:
+        print("ERROR: Target group does not exist!")
+
+    arn = target_group['TargetGroups'][0]['TargetGroupArn']
+    elb.register_targets(TargetGroupArn=arn, Targets=[{'Id': new_id, 'Port': 5000}, ])
+    print("Successfully added new worker node with id: " + new_id + " to the application load balancer")
 
 
 @webapp.route('/remove-node', methods=['POST'])
