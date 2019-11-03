@@ -1,0 +1,24 @@
+.danger-zone{
+    background-color: #da737b;
+    text-align: center;
+}
+
+.node-running{
+    background-color: #98e893;
+}
+
+.node-stopped{
+        background-color: white;
+}
+
+.node-other{
+        background-color: #edef79;
+}
+
+.container{
+    padding-bottom: 20px;
+}
+
+.big-text{
+    font-size: x-large;
+}

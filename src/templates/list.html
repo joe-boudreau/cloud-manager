@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+    <form>
+        <input type="submit" formaction="http://TODO:Addlinktoloadbalancer.com" value="Go to the Application">
+    </form>
+    <table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Type</th>
+            <th>Availability Zone</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    {% for instance in instances %}
+        {% if instance.state['Name'] == 'running' %}
+            <tr class="node-running">
+        {% elif instance.state['Name'] == 'stopped' %}
+            <tr class="node-stopped">
+        {% else %}
+            <tr class="node-other">
+        {% endif %}
+            <td>{{ instance.id }}</td>
+            <td>{{ instance.instance_type }}</td>
+            <td>{{ instance.placement['AvailabilityZone']}}</td>
+            <td>{{ instance.state['Name'] }}</td>
+            <td>
+                <form action="{{url_for('ec2_view',id=instance.id)}}" method='get'>
+                    <button name="Details" type='submit' value="Details">Details</button>
+                </form>
+                <form action="{{url_for('ec2_destroy',id=instance.id)}}" method='post' onsubmit='return confirm("Are you sure?")'>
+                    <button name="Destroy" type='button' value="Destroy">Destroy</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+</div>
+
+<div class="container">
+    <div class="row justify-content-start align-items-center">
+        <div class="col-4">
+            <h4>Modify Worker Pool Size: </h4>
+        </div>
+        <div class="col-1">
+            <form action="{{url_for('add_node')}}" method="post">
+                <input class="big-text" type="submit" value="+">
+            </form>
+        </div>
+        <div class="col-1">
+            <form action="{{url_for('remove_node')}}" method="post">
+                <input class="big-text" type="submit" value="-">
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="container danger-zone">
+    <h3 style="color: darkred">Danger Zone</h3>
+    <p>Be careful with these actions...</p>
+    <div class="row">
+        <div class="col">
+            <form action="{{url_for('stop_all')}}" method="post">
+                <input type="submit" value="Stop All">
+            </form>
+        </div>
+        <div class="col">
+            <form action="{{url_for('delete_all')}}" method="post">
+                <input type="submit" value="Delete All">
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
