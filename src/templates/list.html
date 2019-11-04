@@ -2,42 +2,47 @@
 {% block content %}
 
 <div class="container">
-    <form>
-        <input class="ui-button" type="submit" formaction="http://TODO:Addlinktoloadbalancer.com" value="Go to the Application">
-    </form>
-    <table class="table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Type</th>
-            <th>Availability Zone</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    {% for instance in instances %}
-        {% if instance.state['Name'] == 'running' %}
-            <tr class="node-running">
-        {% elif instance.state['Name'] == 'stopped' %}
-            <tr class="node-stopped">
-        {% else %}
-            <tr class="node-other">
-        {% endif %}
-            <td>{{ instance.id }}</td>
-            <td>{{ instance.instance_type }}</td>
-            <td>{{ instance.placement['AvailabilityZone']}}</td>
-            <td>{{ instance.state['Name'] }}</td>
-            <td>
-                <form action="{{url_for('ec2_view',id=instance.id)}}" method='get'>
-                    <button class="ui-button" name="Details" type='submit' value="Details">Details</button>
-                </form>
-                <form action="{{url_for('ec2_destroy',id=instance.id)}}" method='post' onsubmit='return confirm("Are you sure?")'>
-                    <button class="ui-button" name="Destroy" type='button' value="Destroy">Destroy</button>
-                </form>
-            </td>
-        </tr>
-    {% endfor %}
-    </table>
+    <div class="row">
+        <form target="_blank">
+            <input class="ui-button" type="submit" formaction="http://{{ hostname }}:5000" value="Go to the Application">
+        </form>
+    </div>
+
+    <div class="row">
+        <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Availability Zone</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        {% for instance in instances %}
+            {% if instance.state['Name'] == 'running' %}
+                <tr class="node-running">
+            {% elif instance.state['Name'] == 'stopped' %}
+                <tr class="node-stopped">
+            {% else %}
+                <tr class="node-other">
+            {% endif %}
+                <td>{{ instance.id }}</td>
+                <td>{{ instance.instance_type }}</td>
+                <td>{{ instance.placement['AvailabilityZone']}}</td>
+                <td>{{ instance.state['Name'] }}</td>
+                <td>
+                    <form action="{{url_for('ec2_view',id=instance.id)}}" method='get'>
+                        <button class="ui-button" name="Details" type='submit' value="Details">Details</button>
+                    </form>
+                    <form action="{{url_for('ec2_destroy',id=instance.id)}}" method='post' onsubmit='return confirm("Are you sure?")'>
+                        <button class="ui-button" name="Destroy" type='submit' value="Destroy">Destroy</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </table>
+    </div>
 </div>
 
 <div class="container">
