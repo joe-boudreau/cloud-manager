@@ -1,5 +1,4 @@
-import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from operator import itemgetter
 
 import boto3
