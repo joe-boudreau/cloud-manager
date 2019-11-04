@@ -1,4 +1,4 @@
-from flask import render_template, redirect, url_for
+from flask import render_template, redirect, url_for, request
 from src import webapp
 
 import boto3
@@ -18,7 +18,12 @@ def ec2_list():
 
     instances = ec2.instances.filter().all()
 
-    return render_template("list.html", title="EZ App Manager Deluxe", instances=instances)
+    return render_template(
+        "list.html", title="EZ App Manager Deluxe", instances=instances,
+        upper_thresh=config.manager_config['upper_threshold'],
+        lower_thresh=config.manager_config['lower_threshold'],
+        expand_ratio=config.manager_config['expand_ratio'],
+        shrink_ratio=config.manager_config['shrink_ratio'])
 
 
 @webapp.route('/node/<id>', methods=['GET'])
@@ -106,4 +111,18 @@ def add_node():
 def remove_node():
     # TODO
 
+    return redirect(url_for('ec2_list'))
+
+
+@webapp.route('/change_threshold', methods=['POST'])
+def change_threshold():
+    config.manager_config['upper_threshold'] = request.form.get("upper threshold")
+    config.manager_config['lower_threshold'] = request.form.get("lower threshold")
+    return redirect(url_for('ec2_list'))
+
+
+@webapp.route('/change_ratio', methods=['POST'])
+def change_ratio():
+    config.manager_config['shrink_ratio'] = request.form.get("shrink ratio")
+    config.manager_config['expand_ratio'] = request.form.get("expand ratio")
     return redirect(url_for('ec2_list'))

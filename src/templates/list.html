@@ -56,6 +56,39 @@
             </form>
         </div>
     </div>
+    <br>
+    <div class="row justify-content-start align-items-center">
+        <div class="col-4">
+            <h4>Modify Worker CPU Percentage Threshold: </h4>
+        </div>
+        <div class="col-4">
+            <input class="text" name="lower threshold" value='{{ lower_thresh if lower_thres != None }}' style="width: 80px;">
+            &lt Avg. CPU usage &lt 
+            <input class="text" name="upper threshold" value='{{ upper_thresh if upper_thres != None }}' style="width: 80px;">
+        </div>
+        <div class="col-1">
+            <form action="{{url_for('change_threshold')}}" method="post">
+                <input class="big-text" type="submit" value="Change Threshold">
+            </form>
+        </div>
+    </div>
+    <br>
+    <div class="row justify-content-start align-items-center">
+        <div class="col-4">
+            <h4>Modify Worker Pool Expand/Shrink Ratio: </h4>
+        </div>
+        <div class="col-4">
+            <label>Expand by:</label>
+            <input class="text" name="expand ratio" value='{{ expand_ratio if expand_ratio != None }}' style="width: 80px;">
+            <label>Shrink by:</label>
+            <input class="text" name="shrink ratio" value='{{ shrink_ratio if shrink_ratio != None }}' style="width: 80px;">
+        </div>
+        <div class="col-1">
+            <form action="{{url_for('change_ratio')}}" method="post">
+                <input class="big-text" type="submit" value="Change Ratio">
+            </form>
+        </div>
+    </div>
 </div>
 
 <div class="container danger-zone">
