@@ -1,29 +1,43 @@
 {% extends "base.html" %}
+{% block script %}
+        <script type="text/javascript" src="{{ url_for('static', filename='flot/jquery.flot.js') }}"></script>
+        <script type="text/javascript" src="{{ url_for('static', filename='flot/jquery.flot.time.js') }}"></script>
+        <script type="text/javascript" src="{{ url_for('static', filename='flot/jquery.flot.axislabels.js') }}"></script>
+{% endblock %}
+
 {% block content %}
-    <form action='{{url_for("ec2_list")}}' method='get'>
-        <input type='submit' value='Back' />
-    </form>
+    <div class="row">
+        <form action='{{url_for("ec2_list")}}' method='get'>
+            <input type='submit' value='Back' />
+        </form>
+    </div>
 
-    <table>
-        <tr><td>ID</td><td> {{ instance.id }}</td></tr>
-        <tr><td>Image AMI ID</td><td> {{ instance.image_id }}</td></tr>
-        <tr><td>Key Pair </td><td> {{ instance.key_name }}</td></tr>
-        <tr><td>Public IP Address</td><td>{{ instance.public_ip_address }}</td></tr>
-        <tr><td>State</td><td>{{ instance.state['Name'] }}</td></tr>
-    </table>
+    <div class="row">
+        <table class="table">
+            <tr><td>ID: </td><td> {{ instance.id }}</td></tr>
+            <tr><td>Image AMI ID: </td><td> {{ instance.image_id }}</td></tr>
+            <tr><td>Key Pair: </td><td> {{ instance.key_name }}</td></tr>
+            <tr><td>Public IP Address: </td><td>{{ instance.public_ip_address }}</td></tr>
+            <tr><td>State: </td><td>{{ instance.state['Name'] }}</td></tr>
+        </table>
+    </div>
 
 
-    <h2>CPU</h2>
+    <div class="row"><h2>CPU</h2></div>
 
-    <div id="cpu_plot" style="width:300px;height:150px"></div>
+    <div class="row">
+        <div id="cpu_plot" style="width:600px;height:300px"></div>
+    </div>
 
-    <h2>Requests per Minute</h2>
+    <div class="row"><h2>Requests per Minute</h2></div>
 
-    <div id="http_plot" style="width:300px;height:150px"></div>
+    <div class="row">
+        <div id="http_plot" style="width:600px;height:300px"></div>
+    </div>
 
     <script>
 
-        let now = Date.now()
+        let now = Date.now();
         const options = {
             series: {
                 lines: {show: true},
@@ -35,13 +49,50 @@
                 timeformat: "%H:%M",
                 minTickSize: [1, "minute"],
                 min: new Date(now - 30*60*1000).getTime(), //30 minutes ago,
-                max: now
+                max: now,
+                axisLabel: "Time (UTC)"
             }
         };
 
+        const http_options = {...options};
+        http_options['yaxis'] = {
+                min: 0,
+                minTickSize: 1,
+                axisLabel: "Requests per Minute"
+            };
+        const cpu_options = {...options};
+        cpu_options['yaxis'] = {
+                min: 0,
+                max: 100,
+                minTickSize: 1,
+                axisLabel: "Usage %",
+                tickFormatter: (val, axis) => val + "%"
+            };
 
-        $.plot($("#cpu_plot"), [ {{ cpu_stats }} ] , options);
-        $.plot($("#http_plot"), [ {{ http_stats }} ] , options);
+        $(function(){
+            function update() {
+                $.get("{{url_for('get_http_data', id=instance.id)}}", success=update_http);
+                $.get("{{url_for('get_cpu_data', id=instance.id)}}", success=update_cpu);
+
+                setTimeout(update, 60000);
+            }
+
+            function update_http(d){
+                let now = Date.now();
+                http_options['xaxis']['min'] = new Date(now - 30*60*1000).getTime(); //30 minutes ago,
+                http_options['xaxis']['max'] = now;
+                $.plot($("#http_plot"), [d['data']], http_options);
+            }
+
+            function update_cpu(d){
+                let now = Date.now();
+                cpu_options['xaxis']['min'] = new Date(now - 30*60*1000).getTime(); //30 minutes ago,
+                cpu_options['xaxis']['max'] = now;
+                $.plot($("#cpu_plot"), [d['data']], cpu_options);
+            }
+
+            update();
+        });
     </script>
 
 {% endblock %}

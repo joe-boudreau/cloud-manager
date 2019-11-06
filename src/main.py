@@ -8,17 +8,22 @@ from src import webapp
 @webapp.route('/')
 # Display an HTML list of all ec2 instances
 def ec2_list():
-    ec2 = boto3.resource('ec2')
-    instances = ec2.instances.filter(Filters=[{'Name': 'tag-key', 'Values': ['a2']}]).all()
 
     elb = boto3.client("elbv2")
     hostname = elb.describe_load_balancers(Names=["text-recognition-alb"])['LoadBalancers'][0]['DNSName']
 
-    return render_template("list.html", title="EZ App Manager Deluxe", instances=instances, hostname=hostname,
-        upper_thresh=config.manager_config['upper_threshold'],
-        lower_thresh=config.manager_config['lower_threshold'],
-        expand_ratio=config.manager_config['expand_ratio'],
-        shrink_ratio=config.manager_config['shrink_ratio'])
+    return render_template("main.html", title="EZ App Manager Deluxe", hostname=hostname,
+                           upper_thresh=config.manager_config['upper_threshold'],
+                           lower_thresh=config.manager_config['lower_threshold'],
+                           expand_ratio=config.manager_config['expand_ratio'],
+                           shrink_ratio=config.manager_config['shrink_ratio'])
+
+
+@webapp.route('/instances')
+def get_instances():
+    ec2 = boto3.resource('ec2')
+    instances = ec2.instances.filter(Filters=[{'Name': 'tag-key', 'Values': ['a2']}]).all()
+    return render_template("instance_list.html", instances=instances)
 
 
 @webapp.route('/stop-all', methods=['POST'])
@@ -50,6 +55,7 @@ def ec2_destroy(id):
     ec2.Instance(id).terminate()
 
     return redirect(url_for('ec2_list'))
+
 
 @webapp.route('/change_threshold', methods=['POST'])
 def change_threshold():

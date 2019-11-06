@@ -2,10 +2,15 @@
 {% block content %}
 
 <div class="container">
-    <div class="row">
-        <form target="_blank">
-            <input class="ui-button" type="submit" formaction="http://{{ hostname }}:5000" value="Go to the Application">
-        </form>
+    <div class="row align-items-center d-flex">
+        <div class="p-2">
+            <form target="_blank">
+                <input class="ui-button" type="submit" formaction="http://{{ hostname }}:5000" value="Go to the Application">
+            </form>
+        </div>
+        <div class="ml-auto p-2">
+            <img style="width:35px;" id="reload" class="clickable" src="{{url_for('static', filename='reload.png')}}"onclick="load_instances()"/>
+        </div>
     </div>
 
     <div class="row">
@@ -19,28 +24,8 @@
                 <th>Actions</th>
             </tr>
         </thead>
-        {% for instance in instances %}
-            {% if instance.state['Name'] == 'running' %}
-                <tr class="node-running">
-            {% elif instance.state['Name'] == 'stopped' %}
-                <tr class="node-stopped">
-            {% else %}
-                <tr class="node-other">
-            {% endif %}
-                <td>{{ instance.id }}</td>
-                <td>{{ instance.instance_type }}</td>
-                <td>{{ instance.placement['AvailabilityZone']}}</td>
-                <td>{{ instance.state['Name'] }}</td>
-                <td>
-                    <form action="{{url_for('ec2_view',id=instance.id)}}" method='get'>
-                        <button class="ui-button" name="Details" type='submit' value="Details">Details</button>
-                    </form>
-                    <form action="{{url_for('ec2_destroy',id=instance.id)}}" method='post' onsubmit='return confirm("Are you sure?")'>
-                        <button class="ui-button" name="Destroy" type='submit' value="Destroy">Destroy</button>
-                    </form>
-                </td>
-            </tr>
-        {% endfor %}
+            <tbody id="instance-list">
+            </tbody>
         </table>
     </div>
 </div>
@@ -67,13 +52,13 @@
             <h4>Modify Worker CPU Percentage Threshold: </h4>
         </div>
         <div class="col-4">
-            <input class="text" name="lower threshold" value='{{ lower_thresh if lower_thres != None }}' style="width: 80px;">
+            <input name="lower threshold" value='{{ lower_thresh if lower_thres != None }}' style="width: 80px;">
             &lt Avg. CPU usage &lt 
-            <input class="text" name="upper threshold" value='{{ upper_thresh if upper_thres != None }}' style="width: 80px;">
+            <input name="upper threshold" value='{{ upper_thresh if upper_thres != None }}' style="width: 80px;">
         </div>
         <div class="col-1">
             <form action="{{url_for('change_threshold')}}" method="post">
-                <input class="big-text" type="submit" value="Change Threshold">
+                <input type="submit" value="Change Threshold">
             </form>
         </div>
     </div>
@@ -84,13 +69,13 @@
         </div>
         <div class="col-4">
             <label>Expand by:</label>
-            <input class="text" name="expand ratio" value='{{ expand_ratio if expand_ratio != None }}' style="width: 80px;">
+            <input name="expand ratio" value='{{ expand_ratio if expand_ratio != None }}' style="width: 80px;">
             <label>Shrink by:</label>
-            <input class="text" name="shrink ratio" value='{{ shrink_ratio if shrink_ratio != None }}' style="width: 80px;">
+            <input name="shrink ratio" value='{{ shrink_ratio if shrink_ratio != None }}' style="width: 80px;">
         </div>
         <div class="col-1">
             <form action="{{url_for('change_ratio')}}" method="post">
-                <input class="big-text" type="submit" value="Change Ratio">
+                <input type="submit" value="Change Ratio">
             </form>
         </div>
     </div>
@@ -125,9 +110,22 @@
 {% block script %}
 <script>
   $( function() {
+
+      load_instances();
+
       if ($('#page_load_dialog')){
         $("#page_load_dialog").dialog({modal: true});
       }
+
   });
+
+  function load_instances(){
+      $("#reload").addClass("reload-spin");
+
+      $("#instance-list").load("{{url_for('get_instances')}}",
+          complete=function(){
+              $("#reload").removeClass("reload-spin");
+      });
+  }
 </script>
 {% endblock %}

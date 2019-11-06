@@ -1,0 +1,22 @@
+{% for instance in instances %}
+    {% if instance.state['Name'] == 'running' %}
+        <tr class="node-running">
+    {% elif instance.state['Name'] == 'stopped' %}
+        <tr class="node-stopped">
+    {% else %}
+        <tr class="node-other">
+    {% endif %}
+        <td>{{ instance.id }}</td>
+        <td>{{ instance.instance_type }}</td>
+        <td>{{ instance.placement['AvailabilityZone']}}</td>
+        <td>{{ instance.state['Name'] }}</td>
+        <td>
+            <form action="{{url_for('ec2_view',id=instance.id)}}" method='get'>
+                <button class="ui-button" name="Details" type='submit' value="Details">Details</button>
+            </form>
+            <form action="{{url_for('ec2_destroy',id=instance.id)}}" method='post' onsubmit='return confirm("Are you sure?")'>
+                <button class="ui-button" name="Destroy" type='submit' value="Destroy">Destroy</button>
+            </form>
+        </td>
+    </tr>
+{% endfor %}
