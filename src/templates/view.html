@@ -6,6 +6,7 @@
 {% endblock %}
 
 {% block content %}
+<div class="container">
     <div class="row">
         <form action='{{url_for("ec2_list")}}' method='get'>
             <input type='submit' value='Back' />
@@ -34,65 +35,65 @@
     <div class="row">
         <div id="http_plot" style="width:600px;height:300px"></div>
     </div>
+</div>
 
-    <script>
+<script>
 
-        let now = Date.now();
-        const options = {
-            series: {
-                lines: {show: true},
-                points: {show: true}
-            },
-            xaxis: {
-                mode: "time",
-                timeBase: "milliseconds",
-                timeformat: "%H:%M",
-                minTickSize: [1, "minute"],
-                min: new Date(now - 30*60*1000).getTime(), //30 minutes ago,
-                max: now,
-                axisLabel: "Time (UTC)"
-            }
+    let now = Date.now();
+    const options = {
+        series: {
+            lines: {show: true},
+            points: {show: true}
+        },
+        xaxis: {
+            mode: "time",
+            timeBase: "milliseconds",
+            timeformat: "%H:%M",
+            minTickSize: [1, "minute"],
+            min: new Date(now - 30*60*1000).getTime(), //30 minutes ago,
+            max: now,
+            axisLabel: "Time (UTC)"
+        }
+    };
+
+    const http_options = {...options};
+    http_options['yaxis'] = {
+            min: 0,
+            minTickSize: 1,
+            axisLabel: "Requests per Minute"
+        };
+    const cpu_options = {...options};
+    cpu_options['yaxis'] = {
+            min: 0,
+            max: 100,
+            minTickSize: 1,
+            axisLabel: "Usage %",
+            tickFormatter: (val, axis) => val + "%"
         };
 
-        const http_options = {...options};
-        http_options['yaxis'] = {
-                min: 0,
-                minTickSize: 1,
-                axisLabel: "Requests per Minute"
-            };
-        const cpu_options = {...options};
-        cpu_options['yaxis'] = {
-                min: 0,
-                max: 100,
-                minTickSize: 1,
-                axisLabel: "Usage %",
-                tickFormatter: (val, axis) => val + "%"
-            };
+    $(function(){
+        function update() {
+            $.get("{{url_for('get_http_data', id=instance.id)}}", success=update_http);
+            $.get("{{url_for('get_cpu_data', id=instance.id)}}", success=update_cpu);
 
-        $(function(){
-            function update() {
-                $.get("{{url_for('get_http_data', id=instance.id)}}", success=update_http);
-                $.get("{{url_for('get_cpu_data', id=instance.id)}}", success=update_cpu);
+            setTimeout(update, 60000);
+        }
 
-                setTimeout(update, 60000);
-            }
+        function update_http(d){
+            let now = Date.now();
+            http_options['xaxis']['min'] = new Date(now - 30*60*1000).getTime(); //30 minutes ago,
+            http_options['xaxis']['max'] = now;
+            $.plot($("#http_plot"), [d['data']], http_options);
+        }
 
-            function update_http(d){
-                let now = Date.now();
-                http_options['xaxis']['min'] = new Date(now - 30*60*1000).getTime(); //30 minutes ago,
-                http_options['xaxis']['max'] = now;
-                $.plot($("#http_plot"), [d['data']], http_options);
-            }
+        function update_cpu(d){
+            let now = Date.now();
+            cpu_options['xaxis']['min'] = new Date(now - 30*60*1000).getTime(); //30 minutes ago,
+            cpu_options['xaxis']['max'] = now;
+            $.plot($("#cpu_plot"), [d['data']], cpu_options);
+        }
 
-            function update_cpu(d){
-                let now = Date.now();
-                cpu_options['xaxis']['min'] = new Date(now - 30*60*1000).getTime(); //30 minutes ago,
-                cpu_options['xaxis']['max'] = now;
-                $.plot($("#cpu_plot"), [d['data']], cpu_options);
-            }
-
-            update();
-        });
-    </script>
-
+        update();
+    });
+</script>
 {% endblock %}

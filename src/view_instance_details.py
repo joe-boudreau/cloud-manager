@@ -18,7 +18,7 @@ def ec2_view(id):
                            instance=instance)
 
 
-@webapp.route('/node/cpu/<id>', methods=['GET'])
+@webapp.route('/node/http/<id>', methods=['GET'])
 def get_http_data(id):
     client = boto3.client('cloudwatch')
     # HTTP Requests per minute
