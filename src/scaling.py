@@ -41,7 +41,7 @@ def register_once_running(new_id):
 def remove_node():
     ec2 = boto3.resource('ec2')
 
-    nodes = ec2.instances.filter(Filters=[{'Name': 'tag-key', 'Values': ['a2']}]).all()
+    nodes = ec2.instances.filter(Filters=[{'Name': 'image-id', 'Values': [config.ami_id]}]).all()
     list(nodes)[0].terminate()  # just kill a random one
 
     flash("One worker successfully terminated")
