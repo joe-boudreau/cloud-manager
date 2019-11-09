@@ -1,9 +1,8 @@
-ami_id = 'ami-0bb5866ae41938eff'
-load_balancer_name = "text-recognition-alb"
-load_balancer_target_group_name = "app-target-group"
-ec2_worker_tag_key = "a2"
-ec2_worker_launch_template = "text_recog_launch_template"
-
+ami_id = 'ami-0bb5866ae41938eff'  # TODO change this to actual AMI once done
+inst_tag_key_value = 'a2'
+inst_template_name = 'text-rec-v1'
+elb_target_name = 'text-recognition-workers'
+elb_name = 'text-recognition'
 
 db_config = {'user': 'root',
              'password': 'INSERT PASSWORD HERE',
@@ -11,6 +10,6 @@ db_config = {'user': 'root',
              'database': 'a2'}
 
 manager_config = {'upper_threshold': 80.0,
-                  'lower_threshold': 60.0,
+                  'lower_threshold': 40.0,
                   'expand_ratio': 2.0,
                   'shrink_ratio': 0.5}

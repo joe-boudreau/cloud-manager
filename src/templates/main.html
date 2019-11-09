@@ -52,32 +52,32 @@
             <h4>Modify Worker CPU Percentage Threshold: </h4>
         </div>
         <div class="col-4">
-            <input name="lower threshold" value='{{ lower_thresh if lower_thres != None }}' style="width: 80px;">
-            &lt Avg. CPU usage &lt 
-            <input name="upper threshold" value='{{ upper_thresh if upper_thres != None }}' style="width: 80px;">
-        </div>
-        <div class="col-1">
-            <form action="{{url_for('change_threshold')}}" method="post">
-                <input type="submit" value="Change Threshold">
-            </form>
-        </div>
+          <form action="{{url_for('change_threshold')}}" method="post">
+              <input name="lower_threshold" value='{{ lower_thresh if lower_thres != None }}' style="width: 80px;">
+              &lt Avg. CPU usage &lt 
+              <input name="upper_threshold" value='{{ upper_thresh if upper_thres != None }}' style="width: 80px;">
+            </div>
+              <div class="col-1">
+                  <input type="submit" value="Change Threshold">
+              </div>
+          </form>
     </div>
     <br>
     <div class="row justify-content-start align-items-center">
         <div class="col-4">
             <h4>Modify Worker Pool Expand/Shrink Ratio: </h4>
         </div>
-        <div class="col-4">
-            <label>Expand by:</label>
-            <input name="expand ratio" value='{{ expand_ratio if expand_ratio != None }}' style="width: 80px;">
-            <label>Shrink by:</label>
-            <input name="shrink ratio" value='{{ shrink_ratio if shrink_ratio != None }}' style="width: 80px;">
-        </div>
-        <div class="col-1">
-            <form action="{{url_for('change_ratio')}}" method="post">
-                <input type="submit" value="Change Ratio">
-            </form>
-        </div>
+        <form action="{{url_for('change_ratio')}}" method="post">
+          <div class="col-4">
+              <label>Expand by:</label>
+              <input name="expand_ratio" value='{{ expand_ratio if expand_ratio != None }}' style="width: 80px;">
+              <label>Shrink by:</label>
+              <input name="shrink_ratio" value='{{ shrink_ratio if shrink_ratio != None }}' style="width: 80px;">
+          </div>
+          <div class="col-1">
+              <input type="submit" value="Change Ratio">
+          </div>
+        </form>
     </div>
 </div>
 

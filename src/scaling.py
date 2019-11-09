@@ -2,6 +2,7 @@ from threading import Thread
 
 import boto3
 from flask import flash, redirect, url_for
+
 from src import webapp, config
 
 
@@ -9,7 +10,7 @@ from src import webapp, config
 # Terminate a EC2 instance
 def add_node():
     ec2 = boto3.resource('ec2')
-    new_instance = ec2.create_instances(LaunchTemplate={'LaunchTemplateName': config.ec2_worker_launch_template}, MaxCount=1, MinCount=1)[0]
+    new_instance = ec2.create_instances(LaunchTemplate={'LaunchTemplateName': config.inst_template_name}, MaxCount=1, MinCount=1)[0]
     new_id = new_instance.instance_id
 
     Thread(target=register_once_running, args=[new_id]).start()
@@ -22,11 +23,11 @@ def register_once_running(new_id):
     session = boto3.session.Session()
 
     ec2 = session.resource('ec2')
-    ec2.Instance(new_id).wait_until_running() # this method blocks until the instance is running
+    ec2.Instance(new_id).wait_until_running()  # this method blocks until the instance is running
 
     elb = session.client('elbv2')
 
-    target_group = elb.describe_target_groups(Names=[config.load_balancer_target_group_name, ])
+    target_group = elb.describe_target_groups(Names=[config.elb_target_name, ])
     if not target_group:
         print("ERROR: Target group does not exist!")
 
@@ -40,7 +41,7 @@ def register_once_running(new_id):
 def remove_node():
     ec2 = boto3.resource('ec2')
 
-    nodes = ec2.instances.filter(Filters=[{'Name': 'tag-key', 'Values': [config.ec2_worker_tag_key]}]).all()
+    nodes = ec2.instances.filter(Filters=[{'Name': 'tag-key', 'Values': ['a2']}]).all()
     list(nodes)[0].terminate()  # just kill a random one
 
     flash("One worker successfully terminated")
