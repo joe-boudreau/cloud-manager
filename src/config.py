@@ -16,8 +16,3 @@ manager_db_config = {
     'user': 'admin',
     'password': 'admin123',
     'database': 'a2'}
-
-manager_config = {'upper_threshold': 80.0,
-                  'lower_threshold': 40.0,
-                  'expand_ratio': 2.0,
-                  'shrink_ratio': 0.5}
