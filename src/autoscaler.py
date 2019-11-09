@@ -1,6 +1,6 @@
 from src import config
 from time import sleep
-from threading import Thread, enumerate
+from threading import Thread
 from datetime import datetime, timedelta
 import boto3 as boto
 
@@ -11,17 +11,10 @@ def scale_workers():
     print('started scaler thread')
     # infinite loop running once every minute
     while 1:
-        sleep(10)
+        sleep(60)
         # get list of instances that are running
         ec2 = boto.resource('ec2')
-        workers = ec2.instances.filter(
-                Filters=[{
-                    'Name': 'image-id',
-                    'Values': [config.ami_id]},
-                    {
-                    'Name': 'instance-state-name',
-                    'Values': ['running']},
-                        ])
+        workers = get_workers()
         worker_count = len(list(workers))
         print('DEBUG: {}- worker count={}'.format(datetime.now(),
               worker_count))
@@ -37,6 +30,11 @@ def scale_workers():
 
         # start adding instances
         if instance_delta > 0:
+            if instance_delta+worker_count > 10:
+                instance_delta = 10 - worker_count
+                if instance_delta == 0:
+                    print('Reached max worker size (10), will not expand')
+                    continue
             print('cpu_usage: {}%, expanding worker pool'.format(cpu_usage))
             # run on separate thread since there are blocking calls
             Thread(target=add_instances_to_pool, args=[instance_delta, ec2])\
@@ -115,17 +113,18 @@ def get_worker_delta(cpu_usage, worker_count):
 # threaded call to avoid blocking
 def add_instances_to_pool(num, ec2):
 
-    # launch the instances
-    instances = ec2.create_instances(LaunchTemplate={
-        'LaunchTemplateName': config.inst_template_name},
-        MaxCount=num, MinCount=num)
-
     # register in load balancer
     elb = boto.client('elbv2')
 
     target_group = elb.describe_target_groups(Names=[config.elb_target_name, ])
     if not target_group:
         print("ERROR: Target group does not exist!")
+        return
+
+    # launch the instances
+    instances = ec2.create_instances(LaunchTemplate={
+        'LaunchTemplateName': config.inst_template_name},
+        MaxCount=num, MinCount=num)
 
     arn = target_group['TargetGroups'][0]['TargetGroupArn']
 
@@ -165,3 +164,17 @@ def remove_instances_from_pool(num, ec2, workers):
     for worker in to_terminate:
         worker.terminate()
 
+
+# get list of workers by the ami_id used
+def get_workers():
+    ec2 = boto.resource('ec2')
+    workers = ec2.instances.filter(
+            Filters=[{
+                'Name': 'image-id',
+                'Values': [config.ami_id]},
+                {
+                'Name': 'instance-state-name',
+                'Values': ['running']},
+                    ]).all()
+
+    return workers
