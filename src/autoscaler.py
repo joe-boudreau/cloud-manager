@@ -1,4 +1,4 @@
-from src import config
+from src import config, database
 from time import sleep
 from threading import Thread
 from datetime import datetime, timedelta
@@ -30,11 +30,6 @@ def scale_workers():
 
         # start adding instances
         if instance_delta > 0:
-            if instance_delta+worker_count > 10:
-                instance_delta = 10 - worker_count
-                if instance_delta == 0:
-                    print('Reached max worker size (10), will not expand')
-                    continue
             print('cpu_usage: {}%, expanding worker pool'.format(cpu_usage))
             # run on separate thread since there are blocking calls
             Thread(target=add_instances_to_pool, args=[instance_delta, ec2])\
@@ -89,8 +84,12 @@ def get_workers_cpu():
 # get number of workers to add/remove
 def get_worker_delta(cpu_usage, worker_count):
     instance_delta = 0
-    if cpu_usage < config.manager_config['lower_threshold']:
-        instance_delta = int(config.manager_config['shrink_ratio'] *
+
+    # get parameters from db
+    config = database.get_manager_config()
+
+    if cpu_usage < config['lower_threshold']:
+        instance_delta = int(config['shrink_ratio'] *
                              worker_count) - worker_count
         if instance_delta == 0:
             print('Warning: lower threashold reached but no instances ' +
@@ -100,9 +99,13 @@ def get_worker_delta(cpu_usage, worker_count):
             print('Warning: lower threashold reached but removing more ' +
                   'instances than available - check shrink ratio')
 
-    elif cpu_usage > config.manager_config['upper_threshold']:
-        instance_delta = int(config.manager_config['expand_ratio'] *
-                             worker_count) - worker_count
+    elif cpu_usage > config['upper_threshold']:
+        expand_target = int(config['expand_ratio'] * worker_count)
+        if expand_target > 10:
+            expand_target = 10
+            print('limiting worker count to 10')
+
+        instance_delta = expand_target - worker_count
         if instance_delta == 0:
             print('Warning: upper threashold reached but no instances ' +
                   'will be added - check expand ratio')

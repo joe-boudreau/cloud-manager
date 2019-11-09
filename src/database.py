@@ -33,3 +33,29 @@ def connect_to_db():
                 db=config.manager_db_config['database'],
                 host=dbip,
                 port=dbport)
+
+
+# gets the dictionary for lower and upper cpu thresholds
+# and scaling factors
+def get_manager_config():
+    cursor = g._manager_db.cursor()
+    cursor.execute("select * from config")
+    records = cursor.fetchall()
+
+    result = {
+            'upper_threshold': 0,
+            'lower_threshold': 0,
+            'shrink_ratio': 0.0,
+            'expand_ratio': 0.0}
+
+    # since there would only be one row anyway, break after iteration
+    for row in records:
+        result['upper_threshold'] = row[1]
+        result['lower_threshold'] = row[2]
+        result['shrink_ratio'] = row[3]
+        result['expand_ratio'] = row[4]
+        break
+
+    cursor.close()
+
+    return result
