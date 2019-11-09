@@ -47,38 +47,44 @@
         </div>
     </div>
     <br>
-    <div class="row justify-content-start align-items-center">
-        <div class="col-4">
-            <h4>Modify Worker CPU Percentage Threshold: </h4>
+    <div class="row justify-content-center">
+        <div class="col" style="text-align: center">
+            <p id="validate_msg"></p>
         </div>
-        <div class="col-4">
-          <form action="{{url_for('change_threshold')}}" method="post">
-              <input name="lower_threshold" value='{{ lower_thresh if lower_thres != None }}' style="width: 80px;">
-              &lt Avg. CPU usage &lt 
-              <input name="upper_threshold" value='{{ upper_thresh if upper_thres != None }}' style="width: 80px;">
+    </div>
+    <form id="cpu-form" action="{{url_for('change_threshold')}}" method="post">
+        <div class="row justify-content-start align-items-center">
+            <div class="col-4">
+                <h4>Modify Worker CPU Percentage Threshold: </h4>
             </div>
-              <div class="col-1">
-                  <input type="submit" value="Change Threshold">
-              </div>
-          </form>
-    </div>
-    <br>
-    <div class="row justify-content-start align-items-center">
-        <div class="col-4">
-            <h4>Modify Worker Pool Expand/Shrink Ratio: </h4>
+            <div class="col-4">
+                <input name="lower_threshold" type="text" value='{{ lower_thresh if lower_thres != None }}' style="width: 80px;">
+                <span>&lt Avg. CPU usage &lt</span>
+                <input name="upper_threshold" type="text" value='{{ upper_thresh if upper_thres != None }}' style="width: 80px;">
+            </div>
+            <div class="col-1">
+                <input type="submit" value="Change Threshold">
+            </div>
         </div>
-        <form action="{{url_for('change_ratio')}}" method="post">
-          <div class="col-4">
-              <label>Expand by:</label>
-              <input name="expand_ratio" value='{{ expand_ratio if expand_ratio != None }}' style="width: 80px;">
-              <label>Shrink by:</label>
-              <input name="shrink_ratio" value='{{ shrink_ratio if shrink_ratio != None }}' style="width: 80px;">
-          </div>
-          <div class="col-1">
-              <input type="submit" value="Change Ratio">
-          </div>
-        </form>
-    </div>
+    </form>
+    <br>
+
+    <form id="ratio-form" action="{{url_for('change_ratio')}}" method="post">
+        <div class="row justify-content-start align-items-center">
+            <div class="col-4">
+                <h4>Modify Worker Pool Expand/Shrink Ratio: </h4>
+            </div>
+            <div class="col-4">
+                  <label>Expand by:</label>
+                  <input name="expand_ratio" type="text" value='{{ expand_ratio if expand_ratio != None }}' style="width: 80px;">
+                  <label>Shrink by:</label>
+                  <input name="shrink_ratio" type="text" value='{{ shrink_ratio if shrink_ratio != None }}' style="width: 80px;">
+            </div>
+            <div class="col-1">
+                <input type="submit" value="Change Ratio">
+            </div>
+        </div>
+    </form>
 </div>
 
 <div class="container danger-zone">
@@ -107,8 +113,9 @@
 {% endwith %}
 
 {% endblock %}
+
 {% block script %}
-<script>
+    <script>
   $( function() {
 
       load_instances();
@@ -117,6 +124,38 @@
         $("#page_load_dialog").dialog({modal: true});
       }
 
+      $("#ratio-form" ).on( "submit", validate_inputs);
+
+      $("#cpu-form" ).on( "submit", validate_inputs);
+
+      function validate_inputs(event) {
+          if (!check_if_inputs_numbers(event.target)) {
+              event.preventDefault();
+          }
+      }
+
+      function validation_msg( t ) {
+          $("#validate_msg").text(t).addClass( "ui-state-highlight" );
+          setTimeout(function() {
+            $("#validate_msg").removeClass( "ui-state-highlight", 1500 );
+          }, 500 );
+      }
+
+      function check_if_inputs_numbers(form){
+          var valid = true;
+          $(form).find(':text').each(function() {
+            if (!$.isNumeric(this.value)) {
+                let input = $(this);
+                input.addClass( "ui-state-error" );
+                setTimeout(function() {
+                    input.removeClass( "ui-state-error", 1500 );
+                }, 500 );
+                validation_msg("All inputs must be numeric values only");
+                valid = false
+            }
+          });
+          return valid
+      }
   });
 
   function load_instances(){
@@ -127,5 +166,6 @@
               $("#reload").removeClass("reload-spin");
       });
   }
+
 </script>
 {% endblock %}

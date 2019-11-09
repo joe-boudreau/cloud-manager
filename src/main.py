@@ -1,6 +1,6 @@
 import boto3
 from src import config, autoscaler
-from flask import render_template, redirect, url_for, request
+from flask import render_template, redirect, url_for, request, flash
 from threading import active_count, Thread
 
 from src import webapp
@@ -64,13 +64,33 @@ def ec2_destroy(id):
 
 @webapp.route('/change_threshold', methods=['POST'])
 def change_threshold():
-    config.manager_config['upper_threshold'] = request.form.get('upper_threshold')
-    config.manager_config['lower_threshold'] = request.form.get('lower_threshold')
+    lower = request.form.get('lower_threshold')
+    upper = request.form.get('upper_threshold')
+
+    if not is_number(lower) or not is_number(upper):
+        flash("Error: Ensure CPU thresholds are numbers only (e.g. '50.5')")
+    else:
+        config.manager_config['upper_threshold'] = float(upper)
+        config.manager_config['lower_threshold'] = float(lower)
     return redirect(url_for('ec2_list'))
 
 
 @webapp.route('/change_ratio', methods=['POST'])
 def change_ratio():
-    config.manager_config['shrink_ratio'] = request.form.get("shrink_ratio")
-    config.manager_config['expand_ratio'] = request.form.get("expand_ratio")
+    shrink = request.form.get('shrink_ratio')
+    expand = request.form.get('expand_ratio')
+
+    if not is_number(shrink) or not is_number(expand):
+        flash("Error: Ensure shrink and expand ratios are numbers only (e.g. '50.5')")
+    else:
+        config.manager_config['shrink_ratio'] = float(expand)
+        config.manager_config['expand_ratio'] = float(shrink)
     return redirect(url_for('ec2_list'))
+
+
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False

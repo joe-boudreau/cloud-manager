@@ -1,8 +1,9 @@
 ami_id = 'ami-0bb5866ae41938eff'  # TODO change this to actual AMI once done
-inst_tag_key_value = 'a2'
-inst_template_name = 'text-rec-v1'
-elb_target_name = 'text-recognition-workers'
-elb_name = 'text-recognition'
+inst_template_name = 'text_recog_launch_template'
+elb_target_name = 'app-target-group'
+elb_name = 'text-recognition-alb'
+
+secret_key = "INSERT SECRET KEY HERE"
 
 db_config = {'user': 'root',
              'password': 'INSERT PASSWORD HERE',

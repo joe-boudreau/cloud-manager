@@ -3,6 +3,11 @@
     text-align: center;
 }
 
+.ui-state-highlight {
+    border-color: red;
+    color: red;
+}
+
 .node-running{
     background-color: #98e893;
 }
