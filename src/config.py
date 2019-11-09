@@ -1,13 +1,14 @@
 ami_id = 'ami-0bb5866ae41938eff'
+load_balancer_name = "text-recognition-alb"
+load_balancer_target_group_name = "app-target-group"
+ec2_worker_tag_key = "a2"
+ec2_worker_launch_template = "text_recog_launch_template"
+
 
 db_config = {'user': 'root',
              'password': 'INSERT PASSWORD HERE',
              'host': '127.0.0.1',
              'database': 'a2'}
-
-app_config = {'secret_key': 'INSERT SECRET KEY HERE',
-              'max_file_size_MB': 5,
-              'uploads_directory': 'uploads'}
 
 manager_config = {'upper_threshold': 80.0,
                   'lower_threshold': 60.0,

@@ -10,7 +10,7 @@ from src import webapp
 def ec2_list():
 
     elb = boto3.client("elbv2")
-    hostname = elb.describe_load_balancers(Names=["text-recognition-alb"])['LoadBalancers'][0]['DNSName']
+    hostname = elb.describe_load_balancers(Names=[config.load_balancer_name])['LoadBalancers'][0]['DNSName']
 
     return render_template("main.html", title="EZ App Manager Deluxe", hostname=hostname,
                            upper_thresh=config.manager_config['upper_threshold'],
@@ -22,7 +22,7 @@ def ec2_list():
 @webapp.route('/instances')
 def get_instances():
     ec2 = boto3.resource('ec2')
-    instances = ec2.instances.filter(Filters=[{'Name': 'tag-key', 'Values': ['a2']}]).all()
+    instances = ec2.instances.filter(Filters=[{'Name': 'tag-key', 'Values': [config.ec2_worker_tag_key]}]).all()
     return render_template("instance_list.html", instances=instances)
 
 
