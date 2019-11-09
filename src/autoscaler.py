@@ -1,6 +1,6 @@
-from src import config
+from src import config, database
 from time import sleep
-from threading import Thread, enumerate
+from threading import Thread
 from datetime import datetime, timedelta
 import boto3 as boto
 
@@ -11,17 +11,10 @@ def scale_workers():
     print('started scaler thread')
     # infinite loop running once every minute
     while 1:
-        sleep(10)
+        sleep(60)
         # get list of instances that are running
         ec2 = boto.resource('ec2')
-        workers = ec2.instances.filter(
-                Filters=[{
-                    'Name': 'image-id',
-                    'Values': [config.ami_id]},
-                    {
-                    'Name': 'instance-state-name',
-                    'Values': ['running']},
-                        ])
+        workers = get_workers()
         worker_count = len(list(workers))
         print('DEBUG: {}- worker count={}'.format(datetime.now(),
               worker_count))
@@ -91,8 +84,12 @@ def get_workers_cpu():
 # get number of workers to add/remove
 def get_worker_delta(cpu_usage, worker_count):
     instance_delta = 0
-    if cpu_usage < config.manager_config['lower_threshold']:
-        instance_delta = int(config.manager_config['shrink_ratio'] *
+
+    # get parameters from db
+    manager_config = database.get_manager_config()
+
+    if cpu_usage < manager_config['lower_threshold']:
+        instance_delta = int(manager_config['shrink_ratio'] *
                              worker_count) - worker_count
         if instance_delta == 0:
             print('Warning: lower threashold reached but no instances ' +
@@ -102,9 +99,13 @@ def get_worker_delta(cpu_usage, worker_count):
             print('Warning: lower threashold reached but removing more ' +
                   'instances than available - check shrink ratio')
 
-    elif cpu_usage > config.manager_config['upper_threshold']:
-        instance_delta = int(config.manager_config['expand_ratio'] *
-                             worker_count) - worker_count
+    elif cpu_usage > manager_config['upper_threshold']:
+        expand_target = int(manager_config['expand_ratio'] * worker_count)
+        if expand_target > 10:
+            expand_target = 10
+            print('limiting worker count to 10')
+
+        instance_delta = expand_target - worker_count
         if instance_delta == 0:
             print('Warning: upper threashold reached but no instances ' +
                   'will be added - check expand ratio')
@@ -115,17 +116,18 @@ def get_worker_delta(cpu_usage, worker_count):
 # threaded call to avoid blocking
 def add_instances_to_pool(num, ec2):
 
-    # launch the instances
-    instances = ec2.create_instances(LaunchTemplate={
-        'LaunchTemplateName': config.inst_template_name},
-        MaxCount=num, MinCount=num)
-
     # register in load balancer
     elb = boto.client('elbv2')
 
     target_group = elb.describe_target_groups(Names=[config.elb_target_name, ])
     if not target_group:
         print("ERROR: Target group does not exist!")
+        return
+
+    # launch the instances
+    instances = ec2.create_instances(LaunchTemplate={
+        'LaunchTemplateName': config.inst_template_name},
+        MaxCount=num, MinCount=num)
 
     arn = target_group['TargetGroups'][0]['TargetGroupArn']
 
@@ -165,3 +167,17 @@ def remove_instances_from_pool(num, ec2, workers):
     for worker in to_terminate:
         worker.terminate()
 
+
+# get list of workers by the ami_id used
+def get_workers():
+    ec2 = boto.resource('ec2')
+    workers = ec2.instances.filter(
+            Filters=[{
+                'Name': 'image-id',
+                'Values': [config.ami_id]},
+                {
+                'Name': 'instance-state-name',
+                'Values': ['running']},
+                    ]).all()
+
+    return workers
