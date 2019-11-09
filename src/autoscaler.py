@@ -86,10 +86,10 @@ def get_worker_delta(cpu_usage, worker_count):
     instance_delta = 0
 
     # get parameters from db
-    config = database.get_manager_config()
+    manager_config = database.get_manager_config()
 
-    if cpu_usage < config['lower_threshold']:
-        instance_delta = int(config['shrink_ratio'] *
+    if cpu_usage < manager_config['lower_threshold']:
+        instance_delta = int(manager_config['shrink_ratio'] *
                              worker_count) - worker_count
         if instance_delta == 0:
             print('Warning: lower threashold reached but no instances ' +
@@ -99,8 +99,8 @@ def get_worker_delta(cpu_usage, worker_count):
             print('Warning: lower threashold reached but removing more ' +
                   'instances than available - check shrink ratio')
 
-    elif cpu_usage > config['upper_threshold']:
-        expand_target = int(config['expand_ratio'] * worker_count)
+    elif cpu_usage > manager_config['upper_threshold']:
+        expand_target = int(manager_config['expand_ratio'] * worker_count)
         if expand_target > 10:
             expand_target = 10
             print('limiting worker count to 10')

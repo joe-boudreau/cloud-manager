@@ -43,8 +43,8 @@ def get_manager_config():
     records = cursor.fetchall()
 
     result = {
-            'upper_threshold': 0,
-            'lower_threshold': 0,
+            'upper_threshold': 0.0,
+            'lower_threshold': 0.0,
             'shrink_ratio': 0.0,
             'expand_ratio': 0.0}
 
