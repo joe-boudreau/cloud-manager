@@ -4,14 +4,16 @@ from threading import Thread
 from datetime import datetime, timedelta
 
 boto_session = config.get_boto_session()
-db = None
+db_connection = None
 
 
 # reads average cpu usage across worker pool and
 # grow/shrink worker pool accordingly
-def scale_workers(manager_db):
-    global db
-    db = manager_db
+def scale_workers():
+    # Set up connection to management database
+    global db_connection
+    db_connection = database.connect_to_manager_db()
+
     print('started scaler thread')
     # infinite loop running once every minute
     while 1:
@@ -90,7 +92,8 @@ def get_worker_delta(cpu_usage, worker_count):
     instance_delta = 0
 
     # get parameters from db
-    manager_config = database.get_manager_config(db)
+    manager_config = database.get_manager_config(db_connection)
+    print(manager_config)
 
     if cpu_usage < manager_config['lower_threshold']:
         instance_delta = int(manager_config['shrink_ratio'] *

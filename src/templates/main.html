@@ -2,20 +2,33 @@
 {% block content %}
 
 <div class="container">
+    <div class="row">
+        <form target="_blank">
+            <input class="ui-button" type="submit" formaction="http://{{ hostname }}:5000" value="Go to the Application">
+        </form>
+    </div>
     <div class="row align-items-center d-flex">
         <div class="p-2">
-            <form target="_blank">
-                <input class="ui-button" type="submit" formaction="http://{{ hostname }}:5000" value="Go to the Application">
-            </form>
+            <select multiple id="statusFilter">
+                <option value="running">Running</option>
+                <option value="stopped">Stopped</option>
+                <option value="terminated">Terminated</option>
+                <option value="pending">Pending</option>
+                <option value="shutting-down">Shutting-down</option>
+                <option value="stopping">Stopping</option>
+            </select>
+        </div>
+        <div class="p-1">
+            <input class="ui-button" onclick="applyFilter()" value="Filter">
         </div>
         <div class="ml-auto p-2">
-            <img style="width:35px;" id="reload" class="clickable" src="{{url_for('static', filename='reload.png')}}"onclick="load_instances()"/>
+            <img style="width:35px;" id="reload" class="clickable" src="{{url_for('static', filename='reload.png')}}"onclick="load_instances(true)"/>
         </div>
     </div>
 
     <div class="row">
         <table class="table">
-        <thead>
+        <thead id="instances-header">
             <tr>
                 <th>ID</th>
                 <th>Type</th>
@@ -87,18 +100,18 @@
     </form>
 </div>
 
-<div class="container danger-zone">
+<div class="container-fluid danger-zone">
     <h3 style="color: darkred">Danger Zone</h3>
     <p>Be careful with these actions...</p>
     <div class="row">
         <div class="col">
-            <form action="{{url_for('stop_all')}}" method="post">
-                <input class="ui-button" type="submit" value="Stop All">
+            <form id="stop-all-form" action="{{url_for('stop_all')}}" method="post">
+                <input id="stop-all" class="ui-button" value="Stop All">
             </form>
         </div>
         <div class="col">
-            <form action="{{url_for('delete_all')}}" method="post">
-                <input class="ui-button" type="submit" value="Delete All">
+            <form id="delete-all-form" action="{{url_for('delete_all')}}" method="post">
+                <input id="delete-all" class="ui-button" value="Delete All">
             </form>
         </div>
     </div>
@@ -106,11 +119,15 @@
 
 {% with messages = get_flashed_messages() %}
   {% if messages %}
-    <div id="page_load_dialog" class="ui-dialog ui-corner-all ui-widget ui-widget-content ui-front ui-dialog-buttons ui-draggable">
+    <div id="page_load_dialog" class="ui-dialog ui-corner-all ui-widget ui-widget-content ui-front ui-dialog-buttons">
       {{ messages[0] }}
     </div>
   {% endif %}
 {% endwith %}
+
+    <div title="Confirm" id="confirm-dialog" class="ui-dialog ui-corner-all ui-widget ui-widget-content ui-front ui-dialog-buttons">
+        <p id="confirm-msg"></p>
+    </div>
 
 {% endblock %}
 
@@ -118,54 +135,93 @@
     <script>
   $( function() {
 
-      load_instances();
+      $('#statusFilter').multiselect({
+          placeholder: 'Worker Status',
+          selectAll: true,
+          maxWidth: 180
+      });
+
+      load_instances(false);
 
       if ($('#page_load_dialog')){
         $("#page_load_dialog").dialog({modal: true});
       }
 
       $("#ratio-form" ).on( "submit", validate_inputs);
-
       $("#cpu-form" ).on( "submit", validate_inputs);
 
-      function validate_inputs(event) {
-          if (!check_if_inputs_numbers(event.target)) {
-              event.preventDefault();
+      $("#stop-all" ).on( "click", {msg: "Are you sure you want to stop the application?"}, confirm_dialog);
+      $("#delete-all" ).on( "click", {msg: "Are you sure you want to delete ALL application data and users?"}, confirm_dialog);
+
+      $("#confirm-dialog").dialog({
+          autoOpen:false,
+          modal: true,
+          escape: false,
+          buttons: {
+              Yes: function() {
+                $(this).dialog("close");
+                $(this).data("form").submit();
+              },
+              No: function(){
+                $(this).dialog("close");
+              }
           }
-      }
+      });
 
-      function validation_msg( t ) {
-          $("#validate_msg").text(t).addClass( "ui-state-highlight" );
-          setTimeout(function() {
-            $("#validate_msg").removeClass( "ui-state-highlight", 1500 );
-          }, 500 );
-      }
-
-      function check_if_inputs_numbers(form){
-          var valid = true;
-          $(form).find(':text').each(function() {
-            if (!$.isNumeric(this.value)) {
-                let input = $(this);
-                input.addClass( "ui-state-error" );
-                setTimeout(function() {
-                    input.removeClass( "ui-state-error", 1500 );
-                }, 500 );
-                validation_msg("All inputs must be numeric values only");
-                valid = false
-            }
-          });
-          return valid
-      }
   });
 
-  function load_instances(){
+  function applyFilter(){
+      const statuses = [];
+      $('#statusFilter option:selected').each(function(){ statuses.push($(this).val()); });
+      $('.worker-row').each(function(){
+          let worker_status = $($(this).find('.status')[0]).text();
+          if(!statuses.includes(worker_status)){
+              $(this).hide();
+          }
+          else{
+              $(this).show();
+          }
+      })
+  }
+
+  function confirm_dialog(event) {
+        $('#confirm-msg').text(event.data.msg);
+        $('#confirm-dialog').data("form", $(event.target).parent()).dialog("open");
+    }
+
+  function validate_inputs(event) {
+      if (!check_if_inputs_numbers(event.target)) {
+          event.preventDefault();
+      }
+  }
+
+  function check_if_inputs_numbers(form){
+      var valid = true;
+      $(form).find(':text').each(function() {
+        if (!$.isNumeric(this.value)) {
+            let input = $(this);
+            input.addClass( "ui-state-error" );
+            setTimeout(function() {input.removeClass( "ui-state-error", 1500 );}, 500 );
+            $("#validate_msg").text("All inputs must be numeric values only").addClass("ui-state-highlight");
+            valid = false
+        }
+      });
+      return valid
+  }
+
+  function load_instances(filter){
       $("#reload").addClass("reload-spin");
 
       $("#instance-list").load("{{url_for('get_instances')}}",
           complete=function(){
               $("#reload").removeClass("reload-spin");
+              if (filter){
+                  applyFilter();
+              }
       });
   }
+
+  setTimeout(load_instances, 30000, true); // Reload instance data every 30 seconds
 
 </script>
 {% endblock %}

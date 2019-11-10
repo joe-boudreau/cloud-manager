@@ -8,29 +8,29 @@ from src import webapp
 
 boto_session = config.get_boto_session()
 
+
 @webapp.before_first_request
 def startup():
-
     database.initialize_config()
 
     # start auto scaler
-    Thread(target=autoscaler.scale_workers, args=[database.get_manager_db()]).start()
+    Thread(target=autoscaler.scale_workers).start()
 
     # resize the worker pool to 1
     ec2 = boto_session.resource('ec2')
     workers = ec2.instances.filter(
-            Filters=[{
-                'Name': 'image-id',
-                'Values': [config.ami_id]},
-                {
+        Filters=[{
+            'Name': 'image-id',
+            'Values': [config.ami_id]},
+            {
                 'Name': 'instance-state-name',
                 'Values': ['running']},
-                    ])
+        ])
     worker_count = len(list(workers))
 
     if worker_count > 1:
         Thread(target=autoscaler.remove_instances_from_pool, args=[
-               worker_count-1, ec2, workers]).start()
+            worker_count - 1, ec2, workers]).start()
     elif worker_count < 1:
         Thread(target=autoscaler.add_instances_to_pool, args=[1, ec2]).start()
 

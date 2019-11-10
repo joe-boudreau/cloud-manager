@@ -1,15 +1,15 @@
 {% for instance in instances %}
     {% if instance.state['Name'] == 'running' %}
-        <tr class="node-running">
-    {% elif instance.state['Name'] == 'stopped' %}
-        <tr class="node-stopped">
+        <tr class="worker-row node-running">
+    {% elif instance.state['Name'] == 'terminated' %}
+        <tr class="worker-row node-terminated">
     {% else %}
-        <tr class="node-other">
+        <tr class="worker-row node-other">
     {% endif %}
         <td>{{ instance.id }}</td>
         <td>{{ instance.instance_type }}</td>
         <td>{{ instance.placement['AvailabilityZone']}}</td>
-        <td>{{ instance.state['Name'] }}</td>
+        <td class="status">{{ instance.state['Name'] }}</td>
         <td>
             <form action="{{url_for('ec2_view',id=instance.id)}}" method='get'>
                 <button class="ui-button" name="Details" type='submit' value="Details">Details</button>

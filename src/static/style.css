@@ -1,6 +1,26 @@
+body {
+    background-color: #fafaeb;
+}
+
+.page-title{
+    color: #3383bb;
+    font-family: Verdana;
+    font-weight: bold;
+}
+
+.container-fluid{
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+#instances-header{
+    background-color: white;
+}
+
 .danger-zone{
     background-color: #da737b;
     text-align: center;
+    padding-bottom: 20px;
 }
 
 .ui-state-highlight {
@@ -12,7 +32,7 @@
     background-color: #98e893;
 }
 
-.node-stopped{
+.node-terminated{
         background-color: white;
 }
 
@@ -34,6 +54,10 @@ div.container div.row{
 
 .clickable{
     cursor: pointer;
+}
+
+.ms-options-wrap > .ms-options{
+    left:auto;!important;
 }
 
 .reload-spin {

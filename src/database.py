@@ -69,6 +69,7 @@ def get_manager_config(db=None):
         result = {'upper_threshold': row[1], 'lower_threshold': row[2], 'shrink_ratio': row[3], 'expand_ratio': row[4]}
         break
 
+    man_db.commit()
     cursor.close()
 
     return result
@@ -88,6 +89,7 @@ def update_manager_config(lower_threshold=None, upper_threshold=None, shrink_rat
     cursor = db.cursor()
     cursor.execute(update_stmt)
     db.commit()
+    cursor.close()
 
 
 def initialize_config():
@@ -100,3 +102,4 @@ def initialize_config():
         cursor = db.cursor()
         cursor.execute(insert_stmt)
         db.commit()
+        cursor.close()
