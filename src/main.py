@@ -6,17 +6,18 @@ from threading import Thread
 
 from src import webapp
 
+boto_session = config.get_boto_session()
 
 @webapp.before_first_request
 def startup():
-    # start auto scaler
-    Thread(target=autoscaler.scale_workers).start()
 
-    # connect to databases
-    database.connect_to_db()
+    database.initialize_config()
+
+    # start auto scaler
+    Thread(target=autoscaler.scale_workers, args=[database.get_manager_db()]).start()
 
     # resize the worker pool to 1
-    ec2 = boto3.resource('ec2')
+    ec2 = boto_session.resource('ec2')
     workers = ec2.instances.filter(
             Filters=[{
                 'Name': 'image-id',
@@ -37,19 +38,20 @@ def startup():
 @webapp.route('/')
 # Display an HTML list of all ec2 instances
 def ec2_list():
-    elb = boto3.client("elbv2")
+    elb = boto_session.client("elbv2")
     hostname = elb.describe_load_balancers(Names=[config.elb_name])['LoadBalancers'][0]['DNSName']
 
+    scaler_config = database.get_manager_config()
     return render_template("main.html", title="EZ App Manager Deluxe", hostname=hostname,
-                           upper_thresh=config.manager_config['upper_threshold'],
-                           lower_thresh=config.manager_config['lower_threshold'],
-                           expand_ratio=config.manager_config['expand_ratio'],
-                           shrink_ratio=config.manager_config['shrink_ratio'])
+                           upper_thresh=scaler_config['upper_threshold'],
+                           lower_thresh=scaler_config['lower_threshold'],
+                           expand_ratio=scaler_config['expand_ratio'],
+                           shrink_ratio=scaler_config['shrink_ratio'])
 
 
 @webapp.route('/instances')
 def get_instances():
-    ec2 = boto3.resource('ec2')
+    ec2 = boto_session.resource('ec2')
     instances = ec2.instances.filter(Filters=[{'Name': 'image-id', 'Values': [config.ami_id]}]).all()
     return render_template("instance_list.html", instances=instances)
 
@@ -70,10 +72,10 @@ def stop_all():
 def delete_all():
     # remove all entries from worker database
     try:
-        cursor = g._worker_db
+        cursor = database.get_worker_db()
         cursor.execute('''truncate table users''')
         cursor.execute('''truncate table images''')
-        g._worker_db.commit()
+        cursor.commit()
     except mysql.connector.Error as error:
         print('Failed to delete records from tables: {}'.format(error))
     finally:
@@ -85,7 +87,7 @@ def delete_all():
         worker.terminate()
 
     # S3 delete everything
-    s3 = boto3.resource('s3')
+    s3 = boto_session.resource('s3')
     s3.Bucket(config.s3_bucket_name).objects.delete()
 
     return redirect(url_for('ec2_list'))
@@ -95,7 +97,7 @@ def delete_all():
 # Terminate a EC2 instance
 def ec2_destroy(id):
     # create connection to ec2
-    ec2 = boto3.resource('ec2')
+    ec2 = boto_session.resource('ec2')
 
     ec2.Instance(id).terminate()
 
@@ -110,8 +112,7 @@ def change_threshold():
     if not is_number(lower) or not is_number(upper):
         flash("Error: Ensure CPU thresholds are numbers only (e.g. '50.5')")
     else:
-        config.manager_config['upper_threshold'] = float(upper)
-        config.manager_config['lower_threshold'] = float(lower)
+        database.update_manager_config(lower_threshold=float(lower), upper_threshold=float(upper))
     return redirect(url_for('ec2_list'))
 
 
@@ -123,8 +124,7 @@ def change_ratio():
     if not is_number(shrink) or not is_number(expand):
         flash("Error: Ensure shrink and expand ratios are numbers only (e.g. '50.5')")
     else:
-        config.manager_config['shrink_ratio'] = float(expand)
-        config.manager_config['expand_ratio'] = float(shrink)
+        database.update_manager_config(shrink_ratio=float(shrink), expand_ratio=float(expand))
     return redirect(url_for('ec2_list'))
 
 

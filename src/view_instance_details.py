@@ -4,13 +4,14 @@ from operator import itemgetter
 import boto3
 from flask import render_template
 
-from src import webapp
+from src import webapp, config
 
+boto_session = config.get_boto_session()
 
 @webapp.route('/node/<id>', methods=['GET'])
 # Display details about a specific instance.
 def ec2_view(id):
-    ec2 = boto3.resource('ec2')
+    ec2 = boto_session.resource('ec2')
 
     instance = ec2.Instance(id)
 
@@ -20,7 +21,7 @@ def ec2_view(id):
 
 @webapp.route('/node/http/<id>', methods=['GET'])
 def get_http_data(id):
-    client = boto3.client('cloudwatch')
+    client = boto_session.client('cloudwatch')
     # HTTP Requests per minute
     http = client.get_metric_statistics(
         Period=1 * 60,
@@ -39,7 +40,7 @@ def get_http_data(id):
 
 @webapp.route('/node/cpu/<id>', methods=['GET'])
 def get_cpu_data(id):
-    client = boto3.client('cloudwatch')
+    client = boto_session.client('cloudwatch')
     # CPU Utilization
     cpu = client.get_metric_statistics(
         Period=1 * 60,

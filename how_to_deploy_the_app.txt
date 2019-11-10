@@ -1,0 +1,61 @@
+#Note: I don't guarantee these steps to work at all.
+#Note 2: These steps are meant to be for EC2 instances built from the ECE 1779 provided AMI image that already has python
+# and mySQL and stuff already downloaded onto it
+
+------------------------------------------------------------------------------------------------------------------------
+ON YOUR LOCAL MACHINE:
+
+1. Create a tarball with the following files/folders: app, create_schema.sql, run.sh, requirements.txt
+     > tar -cf a2.tar src/ create_schema.sql start.sh requirements.txt
+
+2. SFTP this little bag of goodies up to your EC2 instance:
+    >sftp -i /path/to/your/private/key.pem ubuntu@[YOUR EC2 IP]
+    >> put a1.tar
+
+
+------------------------------------------------------------------------------------------------------------------------
+ON THE EC2 INSTANCE:
+(start an ssh session)
+
+1. Create a directory to hold the app (wherever you want - I put mine in /home/ubuntu/a2):
+    > mkdir a2
+
+2. Move that tarball you uploaded into the directory and cd into it
+    > mv a2.tar a2
+    > cd a2
+
+2.5. Untar your tarball
+    > tar -xvf a2.tar
+
+3. Create a NEW virtualenv for your python dependencies and stuff. Instructions are found here: https://gist.github.com/Geoyi/d9fab4f609e9f75941946be45000632b
+
+4. Activate your virtualenv:
+    > source venv/bin/activate
+
+5. Install all the python dependencies for our app:
+    > pip install -r requirements.txt
+
+7. Give the run.sh file executable permissions:
+    > chmod +x start.sh
+
+8. Run that little devil and cross your fingers:
+    > ./start.sh
+
+
+------------------------------------------------------------------------------------------------------------------------
+IN THE AWS MANAGEMENT CONSOLE:
+
+You gotta open up port 5000 in order to connect to the VM from the outside world.
+In your list of running instances there are a bunch of columns (like IP address and stuff)
+There is a column called 'Security Groups' - go there and click the link. It should say 'launch-wizard-1'
+Right click the secuity group entry when it appears in the table and click 'Edit Inbound rules'
+Add a Custom TCP rule to allow port 5000 and make the source value "anywhere".
+Save.
+Should be good now.
+
+
+6. Create the database schema (mysql server is already installed and should be running):
+    >mysql -p -u root
+    >> password is ece1779pass
+    >> source create_schema.sql
+    >> exit

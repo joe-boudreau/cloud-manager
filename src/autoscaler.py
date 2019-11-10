@@ -2,22 +2,26 @@ from src import config, database
 from time import sleep
 from threading import Thread
 from datetime import datetime, timedelta
-import boto3 as boto
+
+boto_session = config.get_boto_session()
+db = None
 
 
 # reads average cpu usage across worker pool and
 # grow/shrink worker pool accordingly
-def scale_workers():
+def scale_workers(manager_db):
+    global db
+    db = manager_db
     print('started scaler thread')
     # infinite loop running once every minute
     while 1:
         sleep(60)
         # get list of instances that are running
-        ec2 = boto.resource('ec2')
+        ec2 = boto_session.resource('ec2')
         workers = get_workers()
         worker_count = len(list(workers))
         print('DEBUG: {}- worker count={}'.format(datetime.now(),
-              worker_count))
+                                                  worker_count))
 
         # CPU usage across all workers
         cpu_usage = get_workers_cpu()
@@ -32,20 +36,20 @@ def scale_workers():
         if instance_delta > 0:
             print('cpu_usage: {}%, expanding worker pool'.format(cpu_usage))
             # run on separate thread since there are blocking calls
-            Thread(target=add_instances_to_pool, args=[instance_delta, ec2])\
+            Thread(target=add_instances_to_pool, args=[instance_delta, ec2]) \
                 .start()
 
         # deregister instances and terminate, need to leave at least one
         elif worker_count > 1 and instance_delta < 0:
             print('cpu_usage: {}%, shrinking worker pool'.format(cpu_usage))
-            Thread(target=remove_instances_from_pool, args=[-1*instance_delta,
-                   ec2, workers]).start()
+            Thread(target=remove_instances_from_pool, args=[-1 * instance_delta,
+                                                            ec2, workers]).start()
 
 
 # sends a query to cloudwatch for worker CPU usage
 def get_workers_cpu():
     # cloudwatch client
-    cw = boto.client('cloudwatch')
+    cw = boto_session.client('cloudwatch')
 
     # create the query form
     cquery = [
@@ -67,10 +71,10 @@ def get_workers_cpu():
     ]
 
     resp = cw.get_metric_data(
-            MetricDataQueries=cquery,
-            StartTime=datetime.utcnow() - timedelta(seconds=100),
-            EndTime=datetime.utcnow(),
-            MaxDatapoints=1)
+        MetricDataQueries=cquery,
+        StartTime=datetime.utcnow() - timedelta(seconds=100),
+        EndTime=datetime.utcnow(),
+        MaxDatapoints=1)
 
     result_values = resp['MetricDataResults'][0]['Values']
     if len(result_values) > 0:
@@ -86,7 +90,7 @@ def get_worker_delta(cpu_usage, worker_count):
     instance_delta = 0
 
     # get parameters from db
-    manager_config = database.get_manager_config()
+    manager_config = database.get_manager_config(db)
 
     if cpu_usage < manager_config['lower_threshold']:
         instance_delta = int(manager_config['shrink_ratio'] *
@@ -115,9 +119,8 @@ def get_worker_delta(cpu_usage, worker_count):
 
 # threaded call to avoid blocking
 def add_instances_to_pool(num, ec2):
-
     # register in load balancer
-    elb = boto.client('elbv2')
+    elb = boto_session.client('elbv2')
 
     target_group = elb.describe_target_groups(Names=[config.elb_target_name, ])
     if not target_group:
@@ -141,8 +144,7 @@ def add_instances_to_pool(num, ec2):
 
 # threaded call to avoid blocking
 def remove_instances_from_pool(num, ec2, workers):
-
-    elb = boto.client('elbv2')
+    elb = boto_session.client('elbv2')
 
     target_group = elb.describe_target_groups(Names=[config.elb_target_name, ])
     if not target_group:
@@ -170,14 +172,14 @@ def remove_instances_from_pool(num, ec2, workers):
 
 # get list of workers by the ami_id used
 def get_workers():
-    ec2 = boto.resource('ec2')
+    ec2 = boto_session.resource('ec2')
     workers = ec2.instances.filter(
-            Filters=[{
-                'Name': 'image-id',
-                'Values': [config.ami_id]},
-                {
+        Filters=[{
+            'Name': 'image-id',
+            'Values': [config.ami_id]},
+            {
                 'Name': 'instance-state-name',
                 'Values': ['running']},
-                    ]).all()
+        ]).all()
 
     return workers
