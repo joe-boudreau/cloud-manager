@@ -19,7 +19,7 @@
             </select>
         </div>
         <div class="p-1">
-            <input class="ui-button" onclick="applyFilter()" value="Filter">
+            <input style="width:50%" class="ui-button" onclick="applyFilter()" value="Filter">
         </div>
         <div class="ml-auto p-2">
             <img style="width:35px;" id="reload" class="clickable" src="{{url_for('static', filename='reload.png')}}"onclick="load_instances(true)"/>
@@ -76,7 +76,7 @@
                 <input name="upper_threshold" type="text" value='{{ upper_thresh if upper_thres != None }}' style="width: 80px;">
             </div>
             <div class="col-1">
-                <input type="submit" value="Change Threshold">
+                <input class="ui-button" type="submit" value="Change Threshold">
             </div>
         </div>
     </form>
@@ -94,7 +94,7 @@
                   <input name="shrink_ratio" type="text" value='{{ shrink_ratio if shrink_ratio != None }}' style="width: 80px;">
             </div>
             <div class="col-1">
-                <input type="submit" value="Change Ratio">
+                <input class="ui-button" type="submit" value="Change Ratio">
             </div>
         </div>
     </form>

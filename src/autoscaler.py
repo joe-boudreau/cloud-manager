@@ -93,7 +93,6 @@ def get_worker_delta(cpu_usage, worker_count):
 
     # get parameters from db
     manager_config = database.get_manager_config(db_connection)
-    print(manager_config)
 
     if cpu_usage < manager_config['lower_threshold']:
         instance_delta = int(manager_config['shrink_ratio'] *
