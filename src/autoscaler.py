@@ -58,7 +58,7 @@ def get_workers_cpu():
         {
             'Id': 'getcpu',
             'MetricStat': {
-                'Period': 60,
+                'Period': 120,
                 'Stat': 'Average',
                 'Metric': {
                     'Namespace': 'AWS/EC2',
@@ -74,7 +74,7 @@ def get_workers_cpu():
 
     resp = cw.get_metric_data(
         MetricDataQueries=cquery,
-        StartTime=datetime.utcnow() - timedelta(seconds=100),
+        StartTime=datetime.utcnow() - timedelta(seconds=200),
         EndTime=datetime.utcnow(),
         MaxDatapoints=1)
 
