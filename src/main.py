@@ -60,11 +60,21 @@ def get_instances():
 # remove all EC2 instance
 def stop_all():
     # get list of workers
-    workers = autoscaler.get_workers()
+    ec2 = boto_session.resource('ec2')
+    workers = ec2.instances.filter(
+        Filters=[{
+            'Name': 'instance-id',
+            'Values': [config.ami_id]},
+        ])
 
     for worker in workers:
         worker.terminate()
-    return redirect(url_for('ec2_list'))
+
+    # stop the manager as well
+    manager = ec2.instances.filter(
+            Filters=[{'Name': 'instance-id',
+            'Values': [config.manager_instance_id]}])
+    manager.stop()
 
 
 @webapp.route('/delete-all', methods=['POST'])
@@ -82,7 +92,12 @@ def delete_all():
         cursor.close()
 
     # delete all workers
-    workers = autoscaler.get_workers()
+    ec2 = boto_session.resource('ec2')
+    workers = ec2.instances.filter(
+        Filters=[{
+            'Name': 'instance-id',
+            'Values': [config.ami_id]},
+        ])
     for worker in workers:
         worker.terminate()
 
@@ -90,7 +105,11 @@ def delete_all():
     s3 = boto_session.resource('s3')
     s3.Bucket(config.s3_bucket_name).objects.delete()
 
-    return redirect(url_for('ec2_list'))
+    # stop the manager as well
+    manager = ec2.instances.filter(
+            Filters=[{'Name': 'instance-id',
+            'Values': [config.manager_instance_id]}])
+    manager.stop()
 
 
 @webapp.route('/delete/<id>', methods=['POST'])
