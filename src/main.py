@@ -83,8 +83,8 @@ def delete_all():
     # remove all entries from worker database
     try:
         cursor = database.get_worker_db()
-        cursor.execute('''truncate table users''')
         cursor.execute('''truncate table images''')
+        cursor.execute('''delete from users''')
         cursor.commit()
     except mysql.connector.Error as error:
         print('Failed to delete records from tables: {}'.format(error))
