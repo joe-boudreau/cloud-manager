@@ -6,7 +6,7 @@ ami_id = 'ami-0bb5866ae41938eff'  # TODO change this to actual AMI once done
 inst_template_name = 'text_recog_launch_template'
 elb_target_name = 'app-target-group'
 elb_name = 'text-recognition-alb'
-s3_bucket_name = 'my-bucket'
+s3_bucket_name = 'a2-photos'
 manager_instance_id = 'i-0c74329b0cbbaf7ed'
 
 using_IAM_role = False

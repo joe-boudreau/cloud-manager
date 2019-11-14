@@ -82,7 +82,8 @@ def stop_all():
 def delete_all():
     # remove all entries from worker database
     try:
-        cursor = database.get_worker_db()
+        db = database.get_worker_db()
+        cursor = db.cursor()
         cursor.execute('''truncate table images''')
         cursor.execute('''delete from users''')
         cursor.commit()
